@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on 11/14/2019
+# TAC TURBINE DATA LOGGER
+# Written by: Will
+# Last updated: Jan 2020
 
-@author: will
-
-
-"""
-
+# Imported Libraries
 import mysql.connector
 import re
 import glob
@@ -17,6 +13,7 @@ import urllib.request
 import sys
 import json
 
+# Defining Global Vars
 global DB_ADDRESS, DB_USERNAME, DB_PASSWORD, DB_NAME, inverterLogDirPath
 
 DB_ADDRESS = "128.153.21.86"
@@ -26,6 +23,8 @@ DB_NAME = "blackboard_gui"
 
 inverterLogDirPath = 'C:\\Users\\Labadmin\\Documents\\Inverter\\inverter_log_files'
 
+
+# Finds last entry in database and returns the corresponding time stamp
 def findLastEntry():
     global DB_ADDRESS, DB_USERNAME, DB_PASSWORD, DB_NAME, inverterLogDirPath
     
@@ -39,8 +38,11 @@ def findLastEntry():
 
     return result[0]
 
+
+# Adds a single minute to a given time
+# Input: Datetime object
+# Output: [year,month,day,hour,minute] as strings
 def roundTimeUpMinute(timestampObject):
-    # Rounds the time up by one minute and returns the year,month,day,hour,and minute as strings
     timestamp = datetime.strftime(timestampObject, '%Y-%m-%d %H:%M')
     year = int(timestamp[0:4])
     month = int(timestamp[5:7])
@@ -93,6 +95,10 @@ def roundTimeUpMinute(timestampObject):
 
     return [year,month,day,hour,minute]
 
+
+# Gathers available weather data from JSON file
+# Input: most recent entry to database as datetime object
+# Output: 2D array containing all gathered data
 def getWeatherData(lastEntryTimeObject):
     lastEntryTime = datetime.strftime(lastEntryTimeObject, '%Y-%m-%d %H:%M')
     year = lastEntryTime[0:4]
@@ -245,6 +251,10 @@ def getWeatherData(lastEntryTimeObject):
 
     return returnedWeatherData
 
+
+# Finds the expected inverter file to line up with weather data
+# Input: most recent entry to database as datetime object
+# Output: path of the selected inverter file
 def chooseInverterLogFile(lastEntryTime):
     global DB_ADDRESS, DB_USERNAME, DB_PASSWORD, DB_NAME, inverterLogDirPath
     
@@ -265,6 +275,10 @@ def chooseInverterLogFile(lastEntryTime):
 
     return inverterLogFilePath
 
+
+# Parses the data within the inverter log file for the necessary data
+# Input: most recent entry to database as datetime object
+# Output: 2D array containing all gathered data
 def getInverterData(lastEntryTime):
     global DB_ADDRESS, DB_USERNAME, DB_PASSWORD, DB_NAME, inverterLogDirPath
     
@@ -367,6 +381,10 @@ def getInverterData(lastEntryTime):
             
     return [inverterData,endEnergy]
 
+
+# Aligns data from weather and inverter so that times will match
+# Input: most recent entry to database as datetime object
+# Output: 2D array containing final data
 def alignData(lastSQLEntry):
     weatherData = getWeatherData(lastSQLEntry)
     [inverterData,endEnergy] = getInverterData(lastSQLEntry)
@@ -396,6 +414,9 @@ def alignData(lastSQLEntry):
 
     return fullData
 
+
+# Sends each minute of the available data to the database
+# Input: final data array
 def sendData(data):
     global DB_ADDRESS, DB_USERNAME, DB_PASSWORD, DB_NAME, inverterLogDirPath
 
@@ -414,7 +435,7 @@ def sendData(data):
     mycursor.close()
     mydb.close()
 
-
+# Runs above functions with a 60s pause so that it only runs when data is available
 def runRepeatedly():
     while True:
         pickupTime = time.time()
